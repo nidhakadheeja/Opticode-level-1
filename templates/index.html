@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>OptiCode – Level 1 Optimizer</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+<div class="container">
+
+    <h1>⚡ OptiCode – Level 1 Optimizer</h1>
+    <p class="subtitle">
+        Rule-based Python Code Optimization with Explainable AI (XAI)
+    </p>
+
+    <div class="editor">
+        <textarea id="inputCode" placeholder="Paste unoptimized Python code here..."></textarea>
+
+        <textarea id="outputCode" placeholder="Optimized code will appear here..." readonly></textarea>
+    </div>
+
+    <button onclick="optimizeCode()">Optimize Code</button>
+
+    <!-- XAI Explanation Section -->
+    <div class="explanation-box">
+        <h2>🧠 Optimization Explanations (XAI)</h2>
+        <ul id="explanationList">
+            <li>No optimizations applied yet.</li>
+        </ul>
+    </div>
+
+</div>
+
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
