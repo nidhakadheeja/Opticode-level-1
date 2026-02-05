@@ -2,36 +2,54 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>OptiCode – Level 1 Optimizer</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <title>OptiCode – Python Optimizer</title>
+    <link rel="stylesheet" href="/static/style.css">
 </head>
-
 <body>
+
 <div class="container">
+    <h1>⚡ OptiCode</h1>
+    <p>AI-powered Python Code Optimizer</p>
 
-    <h1>⚡ OptiCode – Level 1 Optimizer</h1>
-    <p class="subtitle">
-        Rule-based Python Code Optimization with Explainable AI (XAI)
-    </p>
+    <!-- Editors -->
+    <div class="editor-container">
+        <div class="editor">
+            <h3>Original Code</h3>
+            <textarea id="codeInput" placeholder="Paste your Python code here..."></textarea>
+        </div>
 
-    <div class="editor">
-        <textarea id="inputCode" placeholder="Paste unoptimized Python code here..."></textarea>
-
-        <textarea id="outputCode" placeholder="Optimized code will appear here..." readonly></textarea>
+        <div class="editor">
+            <h3>Optimized Code</h3>
+            <pre id="optimizedCode"></pre>
+        </div>
     </div>
 
-    <button onclick="optimizeCode()">Optimize Code</button>
-
-    <!-- XAI Explanation Section -->
-    <div class="explanation-box">
-        <h2>🧠 Optimization Explanations (XAI)</h2>
-        <ul id="explanationList">
-            <li>No optimizations applied yet.</li>
-        </ul>
+    <!-- Optimization Level -->
+    <div class="level-select">
+        <label>
+            <input type="radio" name="level" value="level1" checked>
+            Level 1 – Rule-Based
+        </label>
+        <label>
+            <input type="radio" name="level" value="level2">
+            Level 2 – LLM-Based (Groq)
+        </label>
     </div>
 
+    <!-- Button -->
+    <button onclick="optimizeCode()">Optimize</button>
+
+    <!-- Explanation -->
+    <div class="info">
+        <h3>XAI Explanation</h3>
+        <p id="explanation"></p>
+
+        <h3>Complexity</h3>
+        <p><b>Before:</b> <span id="before"></span></p>
+        <p><b>After:</b> <span id="after"></span></p>
+    </div>
 </div>
 
-<script src="{{ url_for('static', filename='script.js') }}"></script>
+<script src="/static/script.js"></script>
 </body>
 </html>

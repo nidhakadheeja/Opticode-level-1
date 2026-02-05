@@ -1,50 +1,29 @@
 async function optimizeCode() {
-    const inputCode = document.getElementById("inputCode").value;
-    const outputCode = document.getElementById("outputCode");
-    const explanationList = document.getElementById("explanationList");
+    const code = document.getElementById("codeInput").value;
+    const level = document.querySelector('input[name="level"]:checked').value;
 
-    // Clear previous output
-    outputCode.value = "";
-    explanationList.innerHTML = "";
-
-    if (!inputCode.trim()) {
-        alert("Please enter some Python code!");
+    if (!code.trim()) {
+        alert("Please enter Python code");
         return;
     }
 
-    try {
-        const response = await fetch("/optimize", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({ code: inputCode })
-        });
+    const response = await fetch(`/optimize/${level}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: code })
+    });
 
-        const data = await response.json();
+    const data = await response.json();
 
-        if (data.error) {
-            outputCode.value = "Error: " + data.error;
-            explanationList.innerHTML = "<li>Optimization failed.</li>";
-            return;
-        }
+    document.getElementById("optimizedCode").innerText =
+        data.optimized_code || "Optimization failed";
 
-        // Show optimized code
-        outputCode.value = data.optimized_code;
+    document.getElementById("explanation").innerText =
+        data.explanation || "No explanation";
 
-        // Show explanations
-        if (data.explanations.length === 0) {
-            explanationList.innerHTML = "<li>No optimizations were required.</li>";
-        } else {
-            data.explanations.forEach(exp => {
-                const li = document.createElement("li");
-                li.textContent = exp;
-                explanationList.appendChild(li);
-            });
-        }
+    document.getElementById("before").innerText =
+        data.complexity_before || "N/A";
 
-    } catch (error) {
-        outputCode.value = "Server error!";
-        explanationList.innerHTML = "<li>Could not connect to server.</li>";
-    }
+    document.getElementById("after").innerText =
+        data.complexity_after || "N/A";
 }

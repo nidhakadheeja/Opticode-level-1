@@ -300,6 +300,15 @@ for i in range(10):
         for exp in explanations:
             print(f"  • {exp}")
 
+# ✅ Wrapper function for Flask integration
+def run_rule_optimizer(code: str):
+    """
+    Wrapper used by app.py
+    Returns optimized code AND explanations
+    """
+    optimized_code, explanations = optimize_code(code)
+    return optimized_code, explanations
+
 
 if __name__ == "__main__":
     test_optimizer()
