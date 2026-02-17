@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>ComplexityViz</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;600;700&family=Familjen+Grotesk:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js"></script>
+<style>
+/* ── Reset & Tokens ──────────────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --bg:       #07080c;
+  --surface:  #0d0f17;
+  --card:     #111420;
+  --card2:    #161a28;
+  --border:   #1d2236;
+  --border2:  #252b40;
+
+  --c1: #4fffb0;   /* mint  – primary */
+  --c2: #7b5ea7;   /* indigo */
+  --c3: #ff6b6b;   /* coral */
+  --c4: #ffd166;   /* gold  */
+  --c5: #06d6a0;   /* teal  */
+  --c6: #118ab2;   /* blue  */
+
+  --text:  #dde3f5;
+  --muted: #5a6180;
+  --mono:  'IBM Plex Mono', monospace;
+  --sans:  'Familjen Grotesk', sans-serif;
+}
+
+body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:100vh;overflow-x:hidden}
+
+/* scanline texture */
+body::after{
+  content:'';position:fixed;inset:0;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.07) 2px,rgba(0,0,0,.07) 4px);
+  pointer-events:none;z-index:0;
+}
+
+.wrap{position:relative;z-index:1;max-width:1360px;margin:0 auto;padding:0 24px 80px}
+
+/* ── Header ──────────────────────────────────────────────────── */
+header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:28px 0 32px;
+  border-bottom:1px solid var(--border);margin-bottom:36px;
+}
+.brand{display:flex;align-items:center;gap:14px}
+.brand-mark{
+  width:44px;height:44px;border-radius:10px;
+  background:linear-gradient(135deg,var(--c1),#00a676);
+  display:flex;align-items:center;justify-content:center;
+  font-size:20px;
+  box-shadow:0 0 20px rgba(79,255,176,.25);
+}
+.brand-name{font-family:var(--sans);font-weight:800;font-size:1.35rem;letter-spacing:-.02em;color:var(--c1)}
+.brand-sub{font-size:.65rem;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin-top:2px}
+.hdr-btns{display:flex;gap:10px}
+
+/* ── Buttons ─────────────────────────────────────────────────── */
+.btn{
+  display:inline-flex;align-items:center;gap:7px;
+  padding:9px 18px;border-radius:8px;border:none;cursor:pointer;
+  font-family:var(--mono);font-size:.75rem;font-weight:600;letter-spacing:.04em;
+  transition:all .15s;
+}
+.btn-primary{background:var(--c1);color:#040509;box-shadow:0 3px 14px rgba(79,255,176,.25)}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 22px rgba(79,255,176,.35)}
+.btn-ghost{background:transparent;border:1px solid var(--border2);color:var(--muted)}
+.btn-ghost:hover{border-color:var(--c1);color:var(--c1)}
+
+/* ── Input Panel ─────────────────────────────────────────────── */
+.input-panel{
+  background:var(--card);border:1px solid var(--border);border-radius:14px;
+  padding:28px;margin-bottom:28px;transition:border-color .2s;
+}
+.input-panel:focus-within{border-color:rgba(79,255,176,.3)}
+.panel-label{
+  font-size:.65rem;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--c1);margin-bottom:14px;display:flex;align-items:center;gap:8px;
+}
+.panel-label::before{content:'';display:block;width:6px;height:6px;border-radius:50%;background:var(--c1);box-shadow:0 0 8px var(--c1)}
+.input-row{display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap}
+textarea#src{
+  flex:1;min-width:280px;height:200px;
+  background:var(--surface);border:1px solid var(--border);border-radius:8px;
+  color:var(--text);font-family:var(--mono);font-size:.77rem;line-height:1.65;
+  padding:14px 16px;resize:vertical;outline:none;transition:border-color .2s;
+}
+textarea#src:focus{border-color:rgba(79,255,176,.4)}
+.side-controls{display:flex;flex-direction:column;gap:9px;min-width:170px}
+.file-btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:7px;
+  padding:9px 18px;border-radius:8px;border:1px solid var(--border2);
+  color:var(--muted);font-family:var(--mono);font-size:.75rem;font-weight:600;
+  cursor:pointer;transition:all .15s;text-align:center;
+}
+.file-btn:hover{border-color:var(--c5);color:var(--c5)}
+#fileIn{display:none}
+
+/* ── KPI Row ─────────────────────────────────────────────────── */
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-bottom:28px}
+.kpi{
+  background:var(--card);border:1px solid var(--border);border-radius:12px;
+  padding:18px 18px 14px;position:relative;overflow:hidden;transition:transform .2s;
+}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--kc,var(--c1))}
+.kpi:hover{transform:translateY(-2px)}
+.kpi-lbl{font-size:.6rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.kpi-val{font-family:var(--sans);font-weight:800;font-size:1.8rem;line-height:1;color:var(--kc,var(--c1))}
+.kpi-sub{font-size:.6rem;color:var(--muted);margin-top:5px}
+
+/* ── Charts Grid ─────────────────────────────────────────────── */
+.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:18px}
+.g8{grid-column:span 8}.g4{grid-column:span 4}
+.g6{grid-column:span 6}.g12{grid-column:span 12}
+@media(max-width:860px){.g8,.g4,.g6{grid-column:span 12}}
+
+.card{
+  background:var(--card);border:1px solid var(--border);border-radius:14px;
+  padding:22px;transition:border-color .2s;
+  animation:fadeUp .4s ease both;
+}
+.card:hover{border-color:var(--border2)}
+.card:nth-child(1){animation-delay:.04s}
+.card:nth-child(2){animation-delay:.08s}
+.card:nth-child(3){animation-delay:.12s}
+.card:nth-child(4){animation-delay:.16s}
+.card:nth-child(5){animation-delay:.20s}
+.card:nth-child(6){animation-delay:.24s}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+
+.card-head{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px;gap:10px}
+.card-title{font-family:var(--sans);font-weight:700;font-size:.9rem;color:var(--text)}
+.card-sub{font-size:.65rem;color:var(--muted);margin-top:3px;letter-spacing:.03em}
+
+.tag{
+  display:inline-block;padding:3px 9px;border-radius:20px;
+  font-size:.6rem;font-weight:700;letter-spacing:.08em;white-space:nowrap;
+}
+.tag-mint  {background:rgba(79,255,176,.1);color:var(--c1);border:1px solid rgba(79,255,176,.2)}
+.tag-indigo{background:rgba(123,94,167,.15);color:#c4b5fd;border:1px solid rgba(123,94,167,.25)}
+.tag-coral {background:rgba(255,107,107,.1);color:var(--c3);border:1px solid rgba(255,107,107,.2)}
+.tag-gold  {background:rgba(255,209,102,.1);color:var(--c4);border:1px solid rgba(255,209,102,.2)}
+
+.cw{position:relative;width:100%}
+
+/* ── Heatmap ─────────────────────────────────────────────────── */
+#hmGrid{display:flex;flex-direction:column;gap:5px;margin-top:4px}
+.hm-row{
+  display:grid;grid-template-columns:130px 1fr 40px;
+  align-items:center;gap:10px;padding:7px 10px;border-radius:7px;
+  transition:filter .15s;cursor:default;
+}
+.hm-row:hover{filter:brightness(1.15)}
+.hm-name{font-size:.73rem;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hm-track{height:5px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden}
+.hm-fill{height:100%;border-radius:3px;transition:width .7s cubic-bezier(.34,1.56,.64,1)}
+.hm-num{font-family:var(--sans);font-weight:800;font-size:.85rem;text-align:right}
+
+/* ── MI Gauge ────────────────────────────────────────────────── */
+.mi-wrap{display:flex;flex-direction:column;align-items:center;gap:14px;padding-top:4px}
+.mi-ring{position:relative;width:136px;height:136px}
+.mi-ring svg{transform:rotate(-90deg)}
+.mi-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.mi-num{font-family:var(--sans);font-weight:800;font-size:2.1rem;line-height:1}
+.mi-lbl{font-size:.6rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-top:3px}
+.mi-table{width:100%;border-collapse:collapse}
+.mi-table td{padding:5px 0;font-size:.7rem;border-bottom:1px solid var(--border)}
+.mi-table tr:last-child td{border-bottom:none}
+.mi-table td:first-child{color:var(--muted)}
+.mi-table td:last-child{text-align:right;font-weight:600}
+
+/* ── Big-O legend pills ──────────────────────────────────────── */
+.bigo-pills{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px}
+.bigo-pill{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:3px 9px;border-radius:6px;font-size:.65rem;
+  background:rgba(255,255,255,.04);border:1px solid var(--border);
+}
+.bigo-dot{width:7px;height:7px;border-radius:50%}
+
+/* ── Function table ──────────────────────────────────────────── */
+.fn-table{width:100%;border-collapse:collapse;font-size:.72rem}
+.fn-table th{
+  text-align:left;padding:8px 12px;
+  font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);
+  border-bottom:1px solid var(--border);
+}
+.fn-table td{padding:9px 12px;border-bottom:1px solid rgba(29,34,54,.6)}
+.fn-table tr:last-child td{border-bottom:none}
+.fn-table tr:hover td{background:rgba(255,255,255,.02)}
+.cx-badge{
+  display:inline-block;padding:2px 8px;border-radius:5px;font-size:.65rem;font-weight:700;
+}
+
+/* ── Empty state ─────────────────────────────────────────────── */
+.empty{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  height:200px;gap:10px;color:var(--muted);font-size:.72rem;letter-spacing:.05em;
+}
+.empty-ico{
+  width:38px;height:38px;border-radius:9px;background:rgba(255,255,255,.03);
+  display:flex;align-items:center;justify-content:center;font-size:17px;opacity:.5;
+}
+
+/* ── Toast ───────────────────────────────────────────────────── */
+#toast{
+  position:fixed;bottom:24px;right:24px;
+  background:var(--card2);border:1px solid var(--border2);
+  border-radius:9px;padding:11px 18px;font-size:.72rem;
+  display:flex;align-items:center;gap:9px;
+  transform:translateY(60px);opacity:0;
+  transition:all .3s cubic-bezier(.34,1.56,.64,1);
+  z-index:999;box-shadow:0 8px 28px rgba(0,0,0,.4);
+}
+#toast.show{transform:translateY(0);opacity:1}
+.spin{
+  width:14px;height:14px;border-radius:50%;
+  border:2px solid var(--border2);border-top-color:var(--c1);
+  animation:sp .7s linear infinite;
+}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+/* scrollbar */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- ── Header ── -->
+<header>
+  <div class="brand">
+    <div class="brand-mark">⬡</div>
+    <div>
+      <div class="brand-name">ComplexityViz</div>
+      <div class="brand-sub">Static Analysis · Halstead · Big-O · MI</div>
+    </div>
+  </div>
+  <div class="hdr-btns">
+    <button class="btn btn-ghost" onclick="loadSample()">Load Sample</button>
+    <button class="btn btn-primary" onclick="run()">▶ Analyze</button>
+  </div>
+</header>
+
+<!-- ── Input ── -->
+<div class="input-panel">
+  <div class="panel-label">Python Source</div>
+  <div class="input-row">
+    <textarea id="src" spellcheck="false"
+      placeholder="# Paste Python code here, or click Load Sample…"></textarea>
+    <div class="side-controls">
+      <input type="file" id="fileIn" accept=".py" onchange="onFile(event)"/>
+      <label for="fileIn" class="file-btn">📂 Load .py File</label>
+      <button class="btn btn-primary" onclick="run()" style="width:100%">▶ Analyze</button>
+      <button class="btn btn-ghost"   onclick="clear_()" style="width:100%">✕ Clear</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── KPIs ── -->
+<div class="kpi-row" id="kpiRow"></div>
+
+<!-- ── Charts ── -->
+<div class="grid" id="mainGrid">
+  <div class="card g12">
+    <div class="empty">
+      <div class="empty-ico">📊</div>
+      <span>Paste Python code above and click Analyze</span>
+    </div>
+  </div>
+</div>
+
+</div><!-- /wrap -->
+
+<div id="toast"><div class="spin"></div><span id="toastMsg">Analyzing…</span></div>
+
+<script>
+Chart.register(ChartDataLabels);
+Chart.defaults.color = '#5a6180';
+Chart.defaults.borderColor = '#1d2236';
+Chart.defaults.font.family = "'IBM Plex Mono', monospace";
+Chart.defaults.font.size = 11;
+
+// ── Colour maps ──────────────────────────────────────────────────────
+const C = { mint:'#4fffb0', indigo:'#7b5ea7', coral:'#ff6b6b',
+            gold:'#ffd166', teal:'#06d6a0', blue:'#118ab2',
+            pink:'#f72585', sky:'#4cc9f0' };
+
+// Maps your exact estimator output strings → colours / labels
+const BIGO_MAP = {
+  'O(1)':        { color: C.teal,   label: 'O(1) Constant'        },
+  'O(log n)':    { color: C.mint,   label: 'O(log n) Logarithmic' },
+  'O(n)':        { color: C.blue,   label: 'O(n) Linear'          },
+  'O(n log n)':  { color: C.sky,    label: 'O(n log n)'           },
+  'O(n^2)':      { color: C.gold,   label: 'O(n²) Quadratic'      },
+  'O(n^3)':      { color: C.coral,  label: 'O(n³) Cubic'          },
+  'O(2^n)':      { color: C.pink,   label: 'O(2ⁿ) Exponential'    },
+};
+
+function bigoColor(s) { return (BIGO_MAP[s] || { color: C.indigo }).color; }
+function bigoLabel(s) { return (BIGO_MAP[s] || { label: s }).label; }
+
+let charts = {};
+
+// ── Toast ────────────────────────────────────────────────────────────
+function toast(msg, ms=2400) {
+  const el = document.getElementById('toast');
+  document.getElementById('toastMsg').textContent = msg;
+  el.classList.add('show');
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.classList.remove('show'), ms);
+}
+
+// ── File loader ──────────────────────────────────────────────────────
+function onFile(e) {
+  const f = e.target.files[0]; if (!f) return;
+  new FileReader().onload = ev => {
+    document.getElementById('src').value = ev.target.result;
+    toast('✓ ' + f.name);
+  }, new FileReader().readAsText(f);
+  // fix: proper reader usage
+  const r = new FileReader();
+  r.onload = ev => { document.getElementById('src').value = ev.target.result; toast('✓ '+f.name); };
+  r.readAsText(f);
+}
+
+function clear_() {
+  document.getElementById('src').value = '';
+  document.getElementById('kpiRow').innerHTML = '';
+  document.getElementById('mainGrid').innerHTML =
+    '<div class="card g12"><div class="empty"><div class="empty-ico">📊</div><span>Paste Python code above and click Analyze</span></div></div>';
+  Object.values(charts).forEach(c => c && c.destroy && c.destroy());
+  charts = {};
+}
+
+// ── Sample ───────────────────────────────────────────────────────────
+function loadSample() {
+  document.getElementById('src').value = `def bubble_sort(arr):
+    """O(n^2) - classic quadratic sort."""
+    n = len(arr)
+    for i in range(n):
+        for j in range(n - i - 1):
+            if arr[j] > arr[j+1]:
+                arr[j], arr[j+1] = arr[j+1], arr[j]
+    return arr
+
+def binary_search(arr, target):
+    """O(log n) - halving search."""
+    lo, hi = 0, len(arr) - 1
+    while lo <= hi:
+        mid = (lo + hi) // 2
+        if arr[mid] == target: return mid
+        elif arr[mid] < target: lo = mid + 1
+        else: hi = mid - 1
+    return -1
+
+def merge_sort(arr):
+    """O(n log n) - divide and conquer."""
+    if len(arr) <= 1: return arr
+    mid = len(arr) // 2
+    left  = merge_sort(arr[:mid])
+    right = merge_sort(arr[mid:])
+    return merge(left, right)
+
+def merge(l, r):
+    res = []
+    i = j = 0
+    while i < len(l) and j < len(r):
+        if l[i] < r[j]: res.append(l[i]); i += 1
+        else:            res.append(r[j]); j += 1
+    return res + l[i:] + r[j:]
+
+def fib(n):
+    """O(2^n) - branching recursion."""
+    if n <= 1: return n
+    return fib(n-1) + fib(n-2)
+
+def matrix_mul(A, B):
+    """O(n^3) - triple nested loop."""
+    n = len(A)
+    C = [[0]*n for _ in range(n)]
+    for i in range(n):
+        for j in range(n):
+            for k in range(n):
+                C[i][j] += A[i][k] * B[k][j]
+    return C
+
+def count_words(text):
+    """O(n) - single pass."""
+    counts = {}
+    for w in text.split():
+        counts[w] = counts.get(w, 0) + 1
+    return counts
+
+def flatten(matrix):
+    """O(n^2) - nested comprehension."""
+    return [v for row in matrix for v in row]
+`;
+  toast('✓ Sample loaded');
+}
+
+// ════════════════════════════════════════════════════════════════════
+// CLIENT-SIDE ANALYSIS ENGINE
+// Mirrors the logic in complexity.py exactly so the browser can run
+// the same estimators without a server round-trip.
+// ════════════════════════════════════════════════════════════════════
+
+// ── Tokeniser helpers ────────────────────────────────────────────────
+function countPattern(src, re) { return (src.match(re) || []).length; }
+
+function extractFuncBodies(source) {
+  const lines = source.split('\n');
+  const funcs = [];
+  for (let i = 0; i < lines.length; i++) {
+    const m = lines[i].match(/^(\s*)def\s+(\w+)\s*\(/);
+    if (!m) continue;
+    const baseIndent = m[1].length;
+    const name = m[2];
+    const body = [lines[i]];
+    let j = i + 1;
+    while (j < lines.length) {
+      const l = lines[j];
+      if (l.trim() === '') { body.push(l); j++; continue; }
+      const ind = l.match(/^(\s*)/)[1].length;
+      if (ind <= baseIndent) break;
+      body.push(l); j++;
+    }
+    funcs.push({ name, startLine: i + 1, src: body.join('\n') });
+  }
+  return funcs;
+}
+
+function signals(src, name) {
+  // loop depths via indentation levels of for/while keywords
+  const loopLines = [...src.matchAll(/^(\s*)(for|while)\b/gm)];
+  let maxLoopDepth = 0;
+  if (loopLines.length) {
+    const indents = loopLines.map(m => m[1].length);
+    const base = Math.min(...indents);
+    const span = 4; // assume 4-space indent
+    maxLoopDepth = Math.floor((Math.max(...indents) - base) / span) + 1;
+  }
+
+  // comprehensions: count nesting via 'for' inside [] or {}
+  const compBlocks = [...src.matchAll(/\[([^\[\]]*for[^\[\]]*)\]/g),
+                      ...src.matchAll(/\{([^\{\}]*for[^\{\}]*)\}/g)];
+  const maxCompDepth = compBlocks.reduce((d, m) => {
+    const depth = (m[1].match(/\bfor\b/g) || []).length;
+    return Math.max(d, depth);
+  }, 0);
+
+  // recursion – look in lines after the def header
+  const bodyAfterDef = src.split('\n').slice(1).join('\n');
+  const recursion = new RegExp('\\b' + name + '\\s*\\(').test(bodyAfterDef);
+  const recMatches = bodyAfterDef.match(new RegExp('\\b' + name + '\\s*\\(', 'g')) || [];
+  const recursiveCalls = recMatches.length;
+  const hasBranchingRecursion = recursiveCalls > 1;
+
+  // slicing: arr[:mid] / arr[1:] pattern
+  const slicing = /\[\s*\w*\s*:\s*\w*\s*\]/.test(src);
+
+  // log-loop: //2 assignment
+  const possibleLogLoop = /=\s*[^=].*\/\/\s*2\b/.test(src) || /mid\s*=/.test(src);
+
+  // allocations: list/dict literals, comprehensions
+  const allocations =
+    countPattern(src, /\[\s*\]/g) +
+    countPattern(src, /\{\s*\}/g) +
+    countPattern(src, /\[.*for\b/g);
+
+  return {
+    max_loop_depth: maxLoopDepth,
+    max_comp_depth: maxCompDepth,
+    recursion,
+    recursive_calls: recursiveCalls,
+    allocations,
+    slicing,
+    has_branching_recursion: hasBranchingRecursion,
+    possible_log_loop: possibleLogLoop,
+  };
+}
+
+// ── Mirrors estimate_time_complexity() in complexity.py ─────────────
+function estimateTime(sig) {
+  const { max_loop_depth: ld, max_comp_depth: cd, recursion, slicing,
+          has_branching_recursion: branching, possible_log_loop: logL } = sig;
+  const divide = recursion && slicing;
+
+  if (recursion) {
+    if (branching) {
+      if (divide) return 'O(n log n)';
+      return 'O(2^n)';
+    }
+    if (slicing) return 'O(n^2)';
+    return 'O(n)';
+  }
+
+  if (logL && ld === 1) return 'O(log n)';
+
+  const d = Math.max(ld, cd);
+  if (d === 0) return 'O(1)';
+  if (d === 1) return 'O(n)';
+  if (d === 2) return 'O(n^2)';
+  if (d === 3) return 'O(n^3)';
+  return `O(n^${d})`;
+}
+
+// ── Mirrors estimate_space_complexity() ─────────────────────────────
+function estimateSpace(sig) {
+  const { recursion, allocations, max_comp_depth: cd } = sig;
+  if (recursion) return 'O(n)';
+  if (allocations) {
+    if (cd >= 2) return `O(n^${cd})`;
+    return 'O(n)';
+  }
+  return 'O(1)';
+}
+
+// ── McCabe Cyclomatic Complexity (regex approx) ──────────────────────
+function calcCC(src) {
+  let cc = 1;
+  const kw = [/\bif\b/g, /\belif\b/g, /\bfor\b/g, /\bwhile\b/g,
+              /\bexcept\b/g, /\bwith\b/g, /\band\b/g, /\bor\b/g];
+  for (const p of kw) cc += (src.match(p) || []).length;
+  return cc;
+}
+
+// ── LOC ──────────────────────────────────────────────────────────────
+function calcLOC(src) {
+  const lines = src.split('\n');
+  const total   = lines.length;
+  const blank   = lines.filter(l => !l.trim()).length;
+  const comment = lines.filter(l => l.trim().startsWith('#') ||
+                                    l.trim().startsWith('"""') ||
+                                    l.trim().startsWith("'''")).length;
+  return { total, blank, comment, code: Math.max(total - blank - comment, 1) };
+}
+
+// ── Halstead (token-level approx) ───────────────────────────────────
+function calcHalstead(src) {
+  const ops = src.match(/[\+\-\*\/\%\=\!\<\>\&\|\^~]+|(?<!\w)(if|elif|else|for|while|return|and|or|not|in|is|import|def|class)(?!\w)/g) || [];
+  const ands = src.match(/\b[a-zA-Z_]\w*\b|\b\d+\.?\d*\b/g) || [];
+  const n1 = new Set(ops).size, n2 = new Set(ands).size;
+  const N1 = ops.length,       N2 = ands.length;
+  const n  = Math.max(n1 + n2, 1), N = N1 + N2;
+  const vol  = N * Math.log2(n);
+  const diff = (n1 / 2) * (N2 / Math.max(n2, 1));
+  return {
+    volume:     Math.round(vol  * 100) / 100,
+    difficulty: Math.round(diff * 100) / 100,
+    effort:     Math.round(diff * vol  * 100) / 100,
+    bugs:       Math.round((vol / 3000) * 10000) / 10000,
+  };
+}
+
+// ── Maintainability Index ────────────────────────────────────────────
+function calcMI(vol, cc, loc) {
+  if (loc <= 0) return 100;
+  const raw = 171 - 5.2*Math.log(Math.max(vol,1)) - 0.23*cc - 16.2*Math.log(Math.max(loc,1));
+  return Math.round(Math.max(0, Math.min(100, raw*100/171)) * 100) / 100;
+}
+function miLabel(mi) { return mi >= 80 ? 'High' : mi >= 65 ? 'Moderate' : 'Low'; }
+function miColor(mi) { return mi >= 80 ? C.mint : mi >= 65 ? C.gold : C.coral; }
+
+// ── Empirical curve generator (simulated from Big-O class) ───────────
+function simulateCurves(funcs) {
+  const sizes = [10, 50, 100, 250, 500, 1000, 2000];
+  const noise = () => 0.82 + Math.random() * 0.36;
+  const S = 0.0015;
+  return funcs.map(f => {
+    const rt = sizes.map(n => {
+      switch (f.time_complexity) {
+        case 'O(1)':       return S * 6 * noise();
+        case 'O(log n)':   return S * Math.log2(n) * 6 * noise();
+        case 'O(n)':       return S * n * noise();
+        case 'O(n log n)': return S * n * Math.log2(n) / 20 * noise();
+        case 'O(n^2)':     return S * n * n / 180 * noise();
+        case 'O(n^3)':     return S * n * n * n / 60000 * noise();
+        case 'O(2^n)':     return S * Math.pow(1.08, n) * noise();
+        default:           return S * n * noise();
+      }
+    });
+    const mem = sizes.map(n => {
+      const b = 8;
+      switch (f.space_complexity) {
+        case 'O(1)':   return b * noise();
+        case 'O(n)':   return b + n * 0.09 * noise();
+        case 'O(n^2)': return b + n * n / 280 * noise();
+        default:       return b + n * 0.04 * noise();
+      }
+    });
+    return { ...f, sizes, runtimes: rt.map(v => Math.round(v*1000)/1000),
+             memory: mem.map(v => Math.round(v*100)/100) };
+  });
+}
+
+// ── Full analysis ────────────────────────────────────────────────────
+function analyzeSource(source) {
+  const rawFuncs = extractFuncBodies(source);
+  const functions = rawFuncs.map(f => {
+    const sig   = signals(f.src, f.name);
+    const tc    = estimateTime(sig);
+    const sc    = estimateSpace(sig);
+    const cc    = calcCC(f.src);
+    const loc   = calcLOC(f.src);
+    const h     = calcHalstead(f.src);
+    const mi    = calcMI(h.volume, cc, loc.code);
+    return { name: f.name, line: f.startLine, time_complexity: tc,
+             space_complexity: sc, cyclomatic_complexity: cc,
+             loc, halstead: h, maintainability_index: mi,
+             mi_label: miLabel(mi) };
+  });
+
+  const fileLOC = calcLOC(source);
+  const fileH   = calcHalstead(source);
+  const totalCC = functions.reduce((s, f) => s + f.cyclomatic_complexity, 0) || 1;
+  const fileMI  = calcMI(fileH.volume, totalCC, fileLOC.code);
+  const dist    = {};
+  functions.forEach(f => { dist[f.time_complexity] = (dist[f.time_complexity]||0)+1; });
+
+  return {
+    functions,
+    loc:   fileLOC,
+    halstead: fileH,
+    total_cyclomatic_complexity: totalCC,
+    maintainability_index: fileMI,
+    mi_label: miLabel(fileMI),
+    big_o_distribution: dist,
+  };
+}
+
+// ════════════════════════════════════════════════════════════════════
+// RENDER
+// ════════════════════════════════════════════════════════════════════
+
+function destroyAll() {
+  Object.values(charts).forEach(c => c?.destroy?.());
+  charts = {};
+}
+
+function run() {
+  const src = document.getElementById('src').value.trim();
+  if (!src) { toast('⚠ Paste some code first', 2000); return; }
+  toast('⚙ Analyzing…', 9999);
+  setTimeout(() => {
+    try {
+      const data = analyzeSource(src);
+      renderKPIs(data);
+      renderAll(data);
+      toast('✓ Done — ' + data.functions.length + ' function' + (data.functions.length!==1?'s':'') + ' found');
+    } catch(e) {
+      toast('✕ ' + e.message, 3000);
+      console.error(e);
+    }
+  }, 100);
+}
+
+// ── KPIs ─────────────────────────────────────────────────────────────
+function renderKPIs(d) {
+  const avgCC = d.functions.length
+    ? (d.total_cyclomatic_complexity / d.functions.length).toFixed(1) : '—';
+  const kpis = [
+    { l:'Functions',      v: d.functions.length, s:'detected',            c: C.mint   },
+    { l:'Avg CC / func',  v: avgCC,              s:'cyclomatic',           c: C.indigo },
+    { l:'Lines of Code',  v: d.loc.code,         s:`${d.loc.total} total`, c: C.teal   },
+    { l:'Halstead Vol',   v: Math.round(d.halstead.volume), s:'effort proxy', c: C.gold },
+    { l:'Maintain. Idx',  v: d.maintainability_index, s: d.mi_label,      c: miColor(d.maintainability_index) },
+    { l:'Est. Bugs',      v: d.halstead.bugs,    s:'Halstead estimate',    c: C.coral  },
+  ];
+  document.getElementById('kpiRow').innerHTML = kpis.map(k => `
+    <div class="kpi" style="--kc:${k.c}">
+      <div class="kpi-lbl">${k.l}</div>
+      <div class="kpi-val">${k.v}</div>
+      <div class="kpi-sub">${k.s}</div>
+    </div>`).join('');
+}
+
+// ── Main grid ────────────────────────────────────────────────────────
+function renderAll(data) {
+  destroyAll();
+  const g = document.getElementById('mainGrid');
+
+  if (!data.functions.length) {
+    g.innerHTML = '<div class="card g12"><div class="empty"><div class="empty-ico">🔍</div><span>No <code>def</code> statements found</span></div></div>';
+    return;
+  }
+
+  const curves = simulateCurves(data.functions);
+
+  g.innerHTML = `
+    <div class="card g8" id="c-runtime">
+      <div class="card-head">
+        <div><div class="card-title">Time Complexity Plot</div>
+             <div class="card-sub">Input size → runtime (ms) · curves match your Big-O class</div></div>
+        <span class="tag tag-mint">BENCHMARK</span>
+      </div>
+      <div class="cw" style="height:280px"><canvas id="chRuntime"></canvas></div>
+    </div>
+
+    <div class="card g4" id="c-bigo">
+      <div class="card-head">
+        <div><div class="card-title">Big-O Distribution</div>
+             <div class="card-sub">Static classification per function</div></div>
+        <span class="tag tag-indigo">O(n)</span>
+      </div>
+      <div class="cw" style="height:210px"><canvas id="chBigo"></canvas></div>
+      <div class="bigo-pills" id="bigoPills"></div>
+    </div>
+
+    <div class="card g6" id="c-mem">
+      <div class="card-head">
+        <div><div class="card-title">Space Usage Plot</div>
+             <div class="card-sub">Input size → memory (KB) · matches space complexity</div></div>
+        <span class="tag tag-coral">MEMORY</span>
+      </div>
+      <div class="cw" style="height:240px"><canvas id="chMem"></canvas></div>
+    </div>
+
+    <div class="card g6" id="c-cc">
+      <div class="card-head">
+        <div><div class="card-title">Cyclomatic Complexity</div>
+             <div class="card-sub">McCabe score per function · risk indicator</div></div>
+        <span class="tag tag-gold">RISK</span>
+      </div>
+      <div class="cw" style="height:240px"><canvas id="chCC"></canvas></div>
+    </div>
+
+    <div class="card g8" id="c-hm">
+      <div class="card-head">
+        <div><div class="card-title">Complexity Heatmap</div>
+             <div class="card-sub">Visual severity · cyclomatic complexity score</div></div>
+        <span class="tag tag-mint">HEATMAP</span>
+      </div>
+      <div id="hmGrid"></div>
+    </div>
+
+    <div class="card g4" id="c-mi">
+      <div class="card-head">
+        <div><div class="card-title">Maintainability Index</div>
+             <div class="card-sub">LOC · CC · Halstead → composite 0–100</div></div>
+        <span class="tag tag-indigo">MI</span>
+      </div>
+      <div class="mi-wrap">
+        <div class="mi-ring">
+          <svg width="136" height="136" viewBox="0 0 136 136">
+            <circle cx="68" cy="68" r="54" fill="none" stroke="#1d2236" stroke-width="11"/>
+            <circle cx="68" cy="68" r="54" fill="none"
+              stroke="${miColor(data.maintainability_index)}"
+              stroke-width="11" stroke-linecap="round"
+              stroke-dasharray="339"
+              stroke-dashoffset="${339-(data.maintainability_index/100)*339}"
+              style="transition:stroke-dashoffset 1s cubic-bezier(.34,1.2,.64,1)"/>
+          </svg>
+          <div class="mi-center">
+            <div class="mi-num" style="color:${miColor(data.maintainability_index)}">${data.maintainability_index}</div>
+            <div class="mi-lbl">${data.mi_label}</div>
+          </div>
+        </div>
+        <table class="mi-table">
+          <tr><td>Lines of Code</td><td>${data.loc.code}</td></tr>
+          <tr><td>Cyclomatic CC</td><td>${data.total_cyclomatic_complexity}</td></tr>
+          <tr><td>Halstead Vol.</td><td>${data.halstead.volume}</td></tr>
+          <tr><td>Difficulty</td><td>${data.halstead.difficulty}</td></tr>
+          <tr><td>Est. Bugs</td><td>${data.halstead.bugs}</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="card g12" id="c-table">
+      <div class="card-head">
+        <div><div class="card-title">Function Summary</div>
+             <div class="card-sub">All detected functions with full metric breakdown</div></div>
+        <span class="tag tag-mint">TABLE</span>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="fn-table">
+          <thead>
+            <tr>
+              <th>Function</th><th>Line</th>
+              <th>Time Complexity</th><th>Space Complexity</th>
+              <th>Cyclomatic CC</th><th>MI</th><th>LOC</th><th>Est. Bugs</th>
+            </tr>
+          </thead>
+          <tbody id="fnTbody"></tbody>
+        </table>
+      </div>
+    </div>
+  `;
+
+  drawRuntime(curves);
+  drawBigo(data.big_o_distribution);
+  drawMemory(curves);
+  drawCC(data.functions);
+  drawHeatmap(data.functions);
+  drawFnTable(data.functions);
+}
+
+// ── 1. Runtime line chart ────────────────────────────────────────────
+function drawRuntime(curves) {
+  const COLORS = Object.values(C);
+  const datasets = curves.slice(0,8).map((f,i) => {
+    const col = COLORS[i % COLORS.length];
+    return {
+      label: f.name,
+      data: f.runtimes,
+      borderColor: col, backgroundColor: col+'18',
+      pointBackgroundColor: col, pointRadius:4, pointHoverRadius:7,
+      borderWidth:2, tension:0.4, fill:false,
+    };
+  });
+  charts.runtime = new Chart(document.getElementById('chRuntime'), {
+    type:'line',
+    data:{ labels: curves[0].sizes.map(s=>`n=${s}`), datasets },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      interaction:{ mode:'index', intersect:false },
+      plugins:{
+        legend:{ position:'top', labels:{ boxWidth:9, padding:14 }},
+        tooltip:{ backgroundColor:'#111420', borderColor:'#1d2236', borderWidth:1 },
+        datalabels:{ display:false },
+      },
+      scales:{
+        x:{ grid:{ color:'#1d2236' }},
+        y:{ grid:{ color:'#1d2236' },
+            title:{ display:true, text:'Runtime (ms)' }},
+      },
+    },
+  });
+}
+
+// ── 2. Big-O doughnut ────────────────────────────────────────────────
+function drawBigo(dist) {
+  const keys   = Object.keys(dist);
+  const values = keys.map(k => dist[k]);
+  const colors = keys.map(k => bigoColor(k));
+  charts.bigo = new Chart(document.getElementById('chBigo'), {
+    type:'doughnut',
+    data:{ labels: keys.map(bigoLabel), datasets:[{ data:values, backgroundColor:colors, borderWidth:0, hoverOffset:8 }]},
+    options:{
+      responsive:true, maintainAspectRatio:false, cutout:'66%',
+      plugins:{
+        legend:{ display:false },
+        tooltip:{ backgroundColor:'#111420', borderColor:'#1d2236', borderWidth:1 },
+        datalabels:{ color:'#dde3f5', font:{ size:10, weight:'bold' }, formatter:(v)=> v||'' },
+      },
+    },
+  });
+  document.getElementById('bigoPills').innerHTML = keys.map((k,i)=>`
+    <div class="bigo-pill">
+      <div class="bigo-dot" style="background:${colors[i]}"></div>
+      ${bigoLabel(k)}
+    </div>`).join('');
+}
+
+// ── 3. Memory area chart ─────────────────────────────────────────────
+function drawMemory(curves) {
+  const COLORS = Object.values(C);
+  const datasets = curves.slice(0,8).map((f,i) => {
+    const col = COLORS[i % COLORS.length];
+    return {
+      label: f.name,
+      data: f.memory,
+      borderColor: col, backgroundColor: col+'20',
+      pointBackgroundColor: col, pointRadius:3,
+      borderWidth:2, tension:0.4, fill:true,
+    };
+  });
+  charts.memory = new Chart(document.getElementById('chMem'), {
+    type:'line',
+    data:{ labels: curves[0].sizes.map(s=>`n=${s}`), datasets },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      interaction:{ mode:'index', intersect:false },
+      plugins:{
+        legend:{ position:'top', labels:{ boxWidth:9, padding:12 }},
+        tooltip:{ backgroundColor:'#111420', borderColor:'#1d2236', borderWidth:1 },
+        datalabels:{ display:false },
+      },
+      scales:{
+        x:{ grid:{ color:'#1d2236' }},
+        y:{ grid:{ color:'#1d2236' },
+            title:{ display:true, text:'Memory (KB)' }},
+      },
+    },
+  });
+}
+
+// ── 4. Cyclomatic bar chart ──────────────────────────────────────────
+function drawCC(fns) {
+  const sorted = [...fns].sort((a,b)=>b.cyclomatic_complexity-a.cyclomatic_complexity);
+  const cols = sorted.map(f => {
+    const v = f.cyclomatic_complexity;
+    return v<=5 ? C.mint : v<=10 ? C.gold : C.coral;
+  });
+  charts.cc = new Chart(document.getElementById('chCC'), {
+    type:'bar',
+    data:{
+      labels: sorted.map(f=>f.name),
+      datasets:[{
+        label:'Cyclomatic Complexity',
+        data: sorted.map(f=>f.cyclomatic_complexity),
+        backgroundColor: cols.map(c=>c+'bb'),
+        borderColor: cols,
+        borderWidth:1, borderRadius:6,
+      }],
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false, indexAxis:'y',
+      plugins:{
+        legend:{ display:false },
+        tooltip:{
+          backgroundColor:'#111420', borderColor:'#1d2236', borderWidth:1,
+          callbacks:{ label: ctx2 => {
+            const v=ctx2.raw;
+            return `CC: ${v} — ${v<=5?'Low risk':v<=10?'Moderate risk':'High risk'}`;
+          }},
+        },
+        datalabels:{
+          align:'end', anchor:'end', color:'#dde3f5',
+          font:{ size:10, weight:'bold' }, formatter:v=>v,
+        },
+      },
+      scales:{
+        x:{ grid:{ color:'#1d2236' }, title:{ display:true, text:'Complexity Score' }},
+        y:{ grid:{ color:'transparent' }},
+      },
+    },
+  });
+}
+
+// ── 5. Heatmap rows ──────────────────────────────────────────────────
+function drawHeatmap(fns) {
+  const sorted = [...fns].sort((a,b)=>b.cyclomatic_complexity-a.cyclomatic_complexity);
+  const max = Math.max(...sorted.map(f=>f.cyclomatic_complexity), 1);
+  document.getElementById('hmGrid').innerHTML = sorted.map(f => {
+    const norm = f.cyclomatic_complexity / max;
+    const pct  = Math.round(norm * 100);
+    const col  = norm < .33 ? C.mint : norm < .66 ? C.gold : C.coral;
+    const bg   = norm < .33
+      ? `rgba(79,255,176,${0.06+norm*.3})`
+      : norm < .66
+        ? `rgba(255,209,102,${0.06+norm*.22})`
+        : `rgba(255,107,107,${0.06+norm*.22})`;
+    return `
+      <div class="hm-row" style="background:${bg}"
+           title="${f.name} — CC:${f.cyclomatic_complexity} | Time:${f.time_complexity} | Space:${f.space_complexity}">
+        <span class="hm-name" style="color:${col}">${f.name}</span>
+        <div class="hm-track">
+          <div class="hm-fill" style="width:${pct}%;background:${col}"></div>
+        </div>
+        <span class="hm-num" style="color:${col}">${f.cyclomatic_complexity}</span>
+      </div>`;
+  }).join('');
+}
+
+// ── 6. Function summary table ────────────────────────────────────────
+function drawFnTable(fns) {
+  const rows = fns.map(f => {
+    const tcCol = bigoColor(f.time_complexity);
+    const scCol = bigoColor(f.space_complexity);
+    const ccCol = f.cyclomatic_complexity<=5?C.mint:f.cyclomatic_complexity<=10?C.gold:C.coral;
+    const miCol = miColor(f.maintainability_index);
+    return `<tr>
+      <td style="font-weight:600">${f.name}</td>
+      <td style="color:var(--muted)">${f.line}</td>
+      <td><span class="cx-badge" style="background:${tcCol}22;color:${tcCol};border:1px solid ${tcCol}44">${f.time_complexity}</span></td>
+      <td><span class="cx-badge" style="background:${scCol}22;color:${scCol};border:1px solid ${scCol}44">${f.space_complexity}</span></td>
+      <td><span class="cx-badge" style="background:${ccCol}22;color:${ccCol};border:1px solid ${ccCol}44">${f.cyclomatic_complexity}</span></td>
+      <td><span class="cx-badge" style="background:${miCol}22;color:${miCol};border:1px solid ${miCol}44">${f.maintainability_index}</span></td>
+      <td>${f.loc.code}</td>
+      <td>${f.halstead.bugs}</td>
+    </tr>`;
+  });
+  document.getElementById('fnTbody').innerHTML = rows.join('');
+}
+
+// ── Keyboard shortcut ─────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey||e.metaKey) && e.key==='Enter') run();
+});
+</script>
+</body>
+</html>

@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <title>OptiCode – Python Optimizer</title>
     <link rel="stylesheet" href="/static/style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js"></script>
 </head>
 <body>
 
@@ -36,19 +38,269 @@
         </label>
     </div>
 
-    <!-- Button -->
-    <button onclick="optimizeCode()">Optimize</button>
+    <!-- Buttons -->
+    <div class="btn-row">
+        <button onclick="optimizeCode()">Optimize</button>
+        <button onclick="analyzeComplexity()" class="btn-outline">Analyze Complexity</button>
+    </div>
 
-    <!-- Explanation -->
+    <!-- XAI Explanation -->
     <div class="info">
         <h3>XAI Explanation</h3>
         <p id="explanation"></p>
-
-        <h3>Complexity</h3>
-        <p><b>Before:</b> <span id="before"></span></p>
-        <p><b>After:</b> <span id="after"></span></p>
     </div>
-</div>
+
+    <!-- ── BEFORE / AFTER COMPARISON SECTION ── -->
+    <div id="vizSection" style="display:none">
+
+        <div class="viz-header">
+            <h2>📊 Complexity Analysis</h2>
+            <div class="viz-header-tabs">
+                <button class="tab-btn active" onclick="switchTab('before')">Before</button>
+                <button class="tab-btn"        onclick="switchTab('after')">After</button>
+                <button class="tab-btn"        onclick="switchTab('diff')">Compare ↔</button>
+            </div>
+        </div>
+
+        <!-- ── BEFORE PANEL ── -->
+        <div id="panel-before" class="tab-panel">
+            <div class="panel-label-strip before-strip">ORIGINAL CODE</div>
+            <div class="kpi-row" id="kpiRow-before"></div>
+            <div class="chart-row">
+                <div class="chart-card chart-wide">
+                    <div class="chart-card-header">
+                        <span class="chart-title">Time Complexity Plot</span>
+                        <span class="chart-tag">BENCHMARK</span>
+                    </div>
+                    <div class="chart-wrap"><canvas id="chRuntime-before"></canvas></div>
+                </div>
+                <div class="chart-card chart-narrow">
+                    <div class="chart-card-header">
+                        <span class="chart-title">Big-O Distribution</span>
+                        <span class="chart-tag">O(n)</span>
+                    </div>
+                    <div class="chart-wrap"><canvas id="chBigo-before"></canvas></div>
+                    <div id="bigoPills-before" class="bigo-pills-wrap"></div>
+                </div>
+            </div>
+            <div class="chart-row">
+                <div class="chart-card">
+                    <div class="chart-card-header">
+                        <span class="chart-title">Space Usage Plot</span>
+                        <span class="chart-tag">MEMORY</span>
+                    </div>
+                    <div class="chart-wrap"><canvas id="chMemory-before"></canvas></div>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-card-header">
+                        <span class="chart-title">Cyclomatic Complexity</span>
+                        <span class="chart-tag">RISK</span>
+                    </div>
+                    <div class="chart-wrap"><canvas id="chCC-before"></canvas></div>
+                </div>
+            </div>
+            <div class="chart-row">
+                <div class="chart-card chart-wide">
+                    <div class="chart-card-header">
+                        <span class="chart-title">Complexity Heatmap</span>
+                        <span class="chart-tag">HEATMAP</span>
+                    </div>
+                    <div id="hmGrid-before"></div>
+                </div>
+                <div class="chart-card chart-narrow">
+                    <div class="chart-card-header">
+                        <span class="chart-title">Maintainability Index</span>
+                        <span class="chart-tag">MI</span>
+                    </div>
+                    <div class="mi-wrap">
+                        <div class="mi-ring">
+                            <svg width="130" height="130" viewBox="0 0 130 130">
+                                <circle cx="65" cy="65" r="52" fill="none" stroke="#1e293b" stroke-width="11"/>
+                                <circle id="miArc-before" cx="65" cy="65" r="52" fill="none"
+                                    stroke="#38bdf8" stroke-width="11" stroke-linecap="round"
+                                    stroke-dasharray="327" stroke-dashoffset="327"
+                                    style="transform:rotate(-90deg);transform-origin:50% 50%;
+                                           transition:stroke-dashoffset .9s ease,stroke .4s ease"/>
+                            </svg>
+                            <div class="mi-center">
+                                <div class="mi-score" id="miScore-before">—</div>
+                                <div class="mi-label" id="miLabel-before">—</div>
+                            </div>
+                        </div>
+                        <table class="mi-table" id="miTable-before"></table>
+                    </div>
+                </div>
+            </div>
+            <div class="chart-card" style="margin-top:18px">
+                <div class="chart-card-header">
+                    <span class="chart-title">Function Summary</span>
+                    <span class="chart-tag">TABLE</span>
+                </div>
+                <div style="overflow-x:auto">
+                    <table class="fn-table">
+                        <thead><tr>
+                            <th>Function</th><th>Line</th><th>Time</th><th>Space</th>
+                            <th>CC</th><th>MI</th><th>LOC</th><th>Est. Bugs</th>
+                        </tr></thead>
+                        <tbody id="fnTbody-before"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── AFTER PANEL ── -->
+        <div id="panel-after" class="tab-panel" style="display:none">
+            <div class="panel-label-strip after-strip">OPTIMIZED CODE</div>
+            <div class="kpi-row" id="kpiRow-after"></div>
+            <div class="chart-row">
+                <div class="chart-card chart-wide">
+                    <div class="chart-card-header">
+                        <span class="chart-title">Time Complexity Plot</span>
+                        <span class="chart-tag">BENCHMARK</span>
+                    </div>
+                    <div class="chart-wrap"><canvas id="chRuntime-after"></canvas></div>
+                </div>
+                <div class="chart-card chart-narrow">
+                    <div class="chart-card-header">
+                        <span class="chart-title">Big-O Distribution</span>
+                        <span class="chart-tag">O(n)</span>
+                    </div>
+                    <div class="chart-wrap"><canvas id="chBigo-after"></canvas></div>
+                    <div id="bigoPills-after" class="bigo-pills-wrap"></div>
+                </div>
+            </div>
+            <div class="chart-row">
+                <div class="chart-card">
+                    <div class="chart-card-header">
+                        <span class="chart-title">Space Usage Plot</span>
+                        <span class="chart-tag">MEMORY</span>
+                    </div>
+                    <div class="chart-wrap"><canvas id="chMemory-after"></canvas></div>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-card-header">
+                        <span class="chart-title">Cyclomatic Complexity</span>
+                        <span class="chart-tag">RISK</span>
+                    </div>
+                    <div class="chart-wrap"><canvas id="chCC-after"></canvas></div>
+                </div>
+            </div>
+            <div class="chart-row">
+                <div class="chart-card chart-wide">
+                    <div class="chart-card-header">
+                        <span class="chart-title">Complexity Heatmap</span>
+                        <span class="chart-tag">HEATMAP</span>
+                    </div>
+                    <div id="hmGrid-after"></div>
+                </div>
+                <div class="chart-card chart-narrow">
+                    <div class="chart-card-header">
+                        <span class="chart-title">Maintainability Index</span>
+                        <span class="chart-tag">MI</span>
+                    </div>
+                    <div class="mi-wrap">
+                        <div class="mi-ring">
+                            <svg width="130" height="130" viewBox="0 0 130 130">
+                                <circle cx="65" cy="65" r="52" fill="none" stroke="#1e293b" stroke-width="11"/>
+                                <circle id="miArc-after" cx="65" cy="65" r="52" fill="none"
+                                    stroke="#38bdf8" stroke-width="11" stroke-linecap="round"
+                                    stroke-dasharray="327" stroke-dashoffset="327"
+                                    style="transform:rotate(-90deg);transform-origin:50% 50%;
+                                           transition:stroke-dashoffset .9s ease,stroke .4s ease"/>
+                            </svg>
+                            <div class="mi-center">
+                                <div class="mi-score" id="miScore-after">—</div>
+                                <div class="mi-label" id="miLabel-after">—</div>
+                            </div>
+                        </div>
+                        <table class="mi-table" id="miTable-after"></table>
+                    </div>
+                </div>
+            </div>
+            <div class="chart-card" style="margin-top:18px">
+                <div class="chart-card-header">
+                    <span class="chart-title">Function Summary</span>
+                    <span class="chart-tag">TABLE</span>
+                </div>
+                <div style="overflow-x:auto">
+                    <table class="fn-table">
+                        <thead><tr>
+                            <th>Function</th><th>Line</th><th>Time</th><th>Space</th>
+                            <th>CC</th><th>MI</th><th>LOC</th><th>Est. Bugs</th>
+                        </tr></thead>
+                        <tbody id="fnTbody-after"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── DIFF / COMPARE PANEL ── -->
+        <div id="panel-diff" class="tab-panel" style="display:none">
+            <div class="panel-label-strip diff-strip">BEFORE vs AFTER</div>
+
+            <!-- Delta KPI strip -->
+            <div class="kpi-row" id="kpiRow-diff"></div>
+
+            <!-- Side-by-side Big-O -->
+            <div class="chart-row">
+                <div class="chart-card">
+                    <div class="chart-card-header">
+                        <span class="chart-title">Big-O Distribution — Before</span>
+                        <span class="chart-tag before-tag">BEFORE</span>
+                    </div>
+                    <div class="chart-wrap"><canvas id="chBigo-diff-before"></canvas></div>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-card-header">
+                        <span class="chart-title">Big-O Distribution — After</span>
+                        <span class="chart-tag after-tag">AFTER</span>
+                    </div>
+                    <div class="chart-wrap"><canvas id="chBigo-diff-after"></canvas></div>
+                </div>
+            </div>
+
+            <!-- Grouped CC comparison -->
+            <div class="chart-card" style="margin-bottom:16px">
+                <div class="chart-card-header">
+                    <span class="chart-title">Cyclomatic Complexity — Before vs After</span>
+                    <span class="chart-tag">RISK</span>
+                </div>
+                <div class="chart-wrap" style="height:280px"><canvas id="chCC-diff"></canvas></div>
+            </div>
+
+            <!-- Runtime overlay -->
+            <div class="chart-card" style="margin-bottom:16px">
+                <div class="chart-card-header">
+                    <span class="chart-title">Runtime Curves — Before vs After</span>
+                    <span class="chart-tag">BENCHMARK</span>
+                </div>
+                <div class="chart-wrap" style="height:280px"><canvas id="chRuntime-diff"></canvas></div>
+            </div>
+
+            <!-- Function diff table -->
+            <div class="chart-card">
+                <div class="chart-card-header">
+                    <span class="chart-title">Function-level Diff</span>
+                    <span class="chart-tag">TABLE</span>
+                </div>
+                <div style="overflow-x:auto">
+                    <table class="fn-table">
+                        <thead><tr>
+                            <th>Function</th>
+                            <th>Time — Before</th><th>Time — After</th>
+                            <th>Space — Before</th><th>Space — After</th>
+                            <th>CC — Before</th><th>CC — After</th>
+                            <th>MI — Before</th><th>MI — After</th>
+                        </tr></thead>
+                        <tbody id="fnTbody-diff"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div><!-- /vizSection -->
+
+</div><!-- /container -->
 
 <script src="/static/script.js"></script>
 </body>

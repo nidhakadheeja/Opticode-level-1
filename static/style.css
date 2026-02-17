@@ -1,3 +1,5 @@
+/* ── EXISTING STYLES (unchanged) ──────────────────────────────── */
+
 body {
     background: #0f172a;
     font-family: Arial, sans-serif;
@@ -75,4 +77,421 @@ button:hover {
 .info {
     margin-top: 30px;
     text-align: left;
+}
+
+/* ── NEW: button row ───────────────────────────────────────────── */
+
+.btn-row {
+    display: flex;
+    justify-content: center;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin: 0 0 4px;
+}
+
+.btn-outline {
+    background: transparent;
+    color: #38bdf8;
+    border: 1px solid #38bdf8;
+}
+
+.btn-outline:hover {
+    background: #38bdf820;
+}
+
+.result-box {
+    margin-top: 16px;
+    text-align: left;
+}
+
+/* ── NEW: Visualization section ────────────────────────────────── */
+
+#vizSection {
+    margin-top: 48px;
+    text-align: left;
+}
+
+.viz-header {
+    border-bottom: 1px solid #1e293b;
+    padding-bottom: 14px;
+    margin-bottom: 24px;
+}
+
+.viz-header h2 {
+    color: #38bdf8;
+    font-size: 1.3rem;
+    margin: 0;
+}
+
+/* KPI strip */
+.kpi-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.kpi-card {
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 10px;
+    padding: 16px 16px 12px;
+    position: relative;
+    overflow: hidden;
+    transition: transform .18s;
+}
+
+.kpi-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--kc, #38bdf8);
+}
+
+.kpi-card:hover { transform: translateY(-2px); }
+
+.kpi-lbl {
+    font-size: 0.62rem;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: #64748b;
+    margin-bottom: 6px;
+}
+
+.kpi-val {
+    font-weight: 800;
+    font-size: 1.7rem;
+    line-height: 1;
+    color: var(--kc, #38bdf8);
+}
+
+.kpi-sub {
+    font-size: 0.6rem;
+    color: #64748b;
+    margin-top: 4px;
+}
+
+/* Chart rows */
+.chart-row {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+
+.chart-card {
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 12px;
+    padding: 20px;
+    flex: 1;
+    min-width: 280px;
+    transition: border-color .2s;
+}
+
+.chart-card:hover { border-color: #475569; }
+
+.chart-wide  { flex: 2; }
+.chart-narrow { flex: 1; }
+
+.chart-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+}
+
+.chart-title {
+    font-weight: 700;
+    font-size: 0.88rem;
+    color: #e5e7eb;
+}
+
+.chart-tag {
+    display: inline-block;
+    padding: 2px 9px;
+    border-radius: 20px;
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: .08em;
+    background: rgba(56,189,248,.1);
+    color: #38bdf8;
+    border: 1px solid rgba(56,189,248,.2);
+}
+
+.chart-wrap {
+    position: relative;
+    height: 240px;
+    width: 100%;
+}
+
+/* Big-O pills */
+#bigoPills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 10px;
+}
+
+.bigo-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 9px;
+    border-radius: 5px;
+    font-size: 0.62rem;
+    background: rgba(255,255,255,.04);
+    border: 1px solid #334155;
+    color: #94a3b8;
+}
+
+.bigo-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+/* Heatmap */
+#hmGrid {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    margin-top: 4px;
+}
+
+.hm-row {
+    display: grid;
+    grid-template-columns: 130px 1fr 36px;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 10px;
+    border-radius: 6px;
+    cursor: default;
+    transition: filter .15s;
+}
+
+.hm-row:hover { filter: brightness(1.15); }
+
+.hm-name {
+    font-size: 0.73rem;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.hm-track {
+    height: 5px;
+    background: rgba(255,255,255,.07);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.hm-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width .6s cubic-bezier(.34,1.56,.64,1);
+}
+
+.hm-num {
+    font-weight: 800;
+    font-size: 0.82rem;
+    text-align: right;
+}
+
+/* MI gauge */
+.mi-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    padding-top: 6px;
+}
+
+.mi-ring {
+    position: relative;
+    width: 130px;
+    height: 130px;
+}
+
+.mi-center {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.mi-score {
+    font-weight: 800;
+    font-size: 2rem;
+    line-height: 1;
+}
+
+.mi-label {
+    font-size: 0.62rem;
+    color: #64748b;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    margin-top: 3px;
+}
+
+.mi-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.72rem;
+}
+
+.mi-table td {
+    padding: 5px 0;
+    border-bottom: 1px solid #1e293b;
+}
+
+.mi-table tr:last-child td { border-bottom: none; }
+
+.mi-table td:first-child { color: #64748b; }
+
+.mi-table td:last-child {
+    text-align: right;
+    font-weight: 600;
+}
+
+/* Function summary table */
+.fn-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.72rem;
+}
+
+.fn-table th {
+    text-align: left;
+    padding: 8px 12px;
+    font-size: 0.6rem;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: #64748b;
+    border-bottom: 1px solid #334155;
+}
+
+.fn-table td {
+    padding: 9px 12px;
+    border-bottom: 1px solid #1e293b;
+}
+
+.fn-table tr:last-child td { border-bottom: none; }
+
+.fn-table tr:hover td { background: rgba(255,255,255,.02); }
+
+.cx-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.65rem;
+    font-weight: 700;
+}
+
+/* ── NEW: Tabs ─────────────────────────────────────────────────── */
+
+.viz-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid #1e293b;
+    padding-bottom: 14px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.viz-header h2 {
+    color: #38bdf8;
+    font-size: 1.3rem;
+    margin: 0;
+}
+
+.viz-header-tabs {
+    display: flex;
+    gap: 6px;
+}
+
+.tab-btn {
+    background: transparent;
+    color: #64748b;
+    border: 1px solid #334155;
+    padding: 7px 18px;
+    border-radius: 6px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all .15s;
+}
+
+.tab-btn:hover:not(:disabled) {
+    border-color: #38bdf8;
+    color: #38bdf8;
+}
+
+.tab-btn.active {
+    background: #38bdf8;
+    color: #020617;
+    border-color: #38bdf8;
+    font-weight: 700;
+}
+
+.tab-btn:disabled {
+    cursor: not-allowed;
+}
+
+/* ── NEW: Panel label strips ───────────────────────────────────── */
+
+.panel-label-strip {
+    text-align: center;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: .15em;
+    padding: 6px 0;
+    border-radius: 6px;
+    margin-bottom: 20px;
+}
+
+.before-strip { background: rgba(248,113,113,.08); color: #f87171; border: 1px solid rgba(248,113,113,.2); }
+.after-strip  { background: rgba(74,222,128,.08);  color: #4ade80; border: 1px solid rgba(74,222,128,.2); }
+.diff-strip   { background: rgba(56,189,248,.08);  color: #38bdf8; border: 1px solid rgba(56,189,248,.2); }
+
+/* ── NEW: Diff KPI value layout ────────────────────────────────── */
+
+.diff-val {
+    display: flex;
+    align-items: baseline;
+    gap: 5px;
+    font-size: 1rem !important;
+}
+
+.diff-before {
+    color: #64748b;
+    font-size: .85rem;
+}
+
+.diff-arrow {
+    font-size: 1.3rem;
+    font-weight: 800;
+}
+
+.diff-after {
+    font-size: 1.1rem;
+    font-weight: 800;
+}
+
+/* ── NEW: Before/After chart tags ──────────────────────────────── */
+
+.before-tag { background: rgba(248,113,113,.1); color: #f87171; border: 1px solid rgba(248,113,113,.2); }
+.after-tag  { background: rgba(74,222,128,.1);  color: #4ade80; border: 1px solid rgba(74,222,128,.2);  }
+
+/* ── NEW: bigo-pills wrapper ───────────────────────────────────── */
+.bigo-pills-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 10px;
 }

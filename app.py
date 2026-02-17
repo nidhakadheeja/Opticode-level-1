@@ -2,6 +2,8 @@ from flask import Flask, render_template, request, jsonify
 import os
 import ast
 from dotenv import load_dotenv
+from analysis.complexity import analyze_code_complexity
+
 
 # -----------------------------
 # LOAD ENV VARIABLES FIRST
@@ -34,14 +36,24 @@ def optimize_level1():
     data = request.get_json()
     code = data.get("code", "")
 
+    if not code.strip():
+        return jsonify({"error": "No code provided"}), 400
+
     try:
+        # BEFORE
+        original_complexity = analyze_code_complexity(code)
+
+        # OPTIMIZE
         optimized_code, explanations = run_rule_optimizer(code)
+
+        # AFTER
+        optimized_complexity = analyze_code_complexity(optimized_code)
 
         return jsonify({
             "optimized_code": optimized_code,
             "explanation": "\n".join(explanations),
-            "complexity_before": "N/A",
-            "complexity_after": "Improved"
+            "complexity_before": original_complexity,
+            "complexity_after": optimized_complexity
         })
 
     except Exception as e:
@@ -51,6 +63,7 @@ def optimize_level1():
             "complexity_before": "N/A",
             "complexity_after": "N/A"
         })
+
 
 
 # -----------------------------
@@ -64,7 +77,7 @@ def optimize_level2():
     if not code.strip():
         return jsonify({"error": "No code provided"}), 400
 
-    # Syntax safety check
+    # Syntax safety
     try:
         ast.parse(code)
     except SyntaxError as e:
@@ -76,18 +89,21 @@ def optimize_level2():
         })
 
     try:
+        # BEFORE
+        original_complexity = analyze_code_complexity(code)
+
+        # OPTIMIZE USING LLM
         llm_output = optimize_with_groq(code)
-
-        print("\n--- RAW LLM OUTPUT ---\n")
-        print(llm_output)
-
         optimized_code, explanation_list = parse_llm_response(llm_output)
+
+        # AFTER
+        optimized_complexity = analyze_code_complexity(optimized_code)
 
         return jsonify({
             "optimized_code": optimized_code,
             "explanation": "\n".join(explanation_list),
-            "complexity_before": "Estimated",
-            "complexity_after": "Improved (LLM-based)"
+            "complexity_before": original_complexity,
+            "complexity_after": optimized_complexity
         })
 
     except Exception as e:
@@ -97,6 +113,21 @@ def optimize_level2():
             "complexity_before": "N/A",
             "complexity_after": "N/A"
         })
+
+@app.route("/complexity", methods=["POST"])
+def complexity():
+    data = request.get_json()
+    code = data.get("code", "")
+
+    if not code.strip():
+        return jsonify({"error": "No code provided"}), 400
+
+    try:
+        result = analyze_code_complexity(code)
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 
 
 # -----------------------------
